@@ -1071,6 +1071,9 @@ module ManageIQ::Providers
           device_type << (backing['fileName'].nil? ? "-raw" : "-image") if device_type == 'cdrom'
 
           controller = inv.detect { |d| d['key'] == device['controllerKey'] }
+          if !controller
+            _log.warn("missing controller: vm mor=#{vm_mor}, device(backing=#{backing} controller_key=#{device['controllerKey']}), devices=#{inv}")
+          end
           controller_type = case controller.xsiType
                             when /IDE/ then 'ide'
                             when /SIO/ then 'sio'
