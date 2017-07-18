@@ -479,11 +479,7 @@
             str: "0"
             "@vimType": 
             "@xsiType": :"SOAP::SOAPInt"
-          controllerKey: !str:VimString 
-            str: "300"
-            "@vimType": 
-            "@xsiType": :"SOAP::SOAPInt"
-          deviceInfo: !map:VimHash 
+          deviceInfo: !map:VimHash
             label: !str:VimString 
               str: "Keyboard "
               "@vimType": 
@@ -501,11 +497,7 @@
             str: "1"
             "@vimType": 
             "@xsiType": :"SOAP::SOAPInt"
-          controllerKey: !str:VimString 
-            str: "300"
-            "@vimType": 
-            "@xsiType": :"SOAP::SOAPInt"
-          deviceInfo: !map:VimHash 
+          deviceInfo: !map:VimHash
             label: !str:VimString 
               str: Pointing device
               "@vimType": 
