@@ -67,6 +67,7 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
 
     parse_updates(vim, parser, updated_objects)
     parse_storage_profiles(vim, parser)
+    parse_content_libraries()
     save_inventory(persister)
 
     self.last_full_refresh = Time.now.utc
@@ -237,6 +238,40 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
     return if obj.nil?
 
     @uncached_prop_set[obj.class.wsdl_name]
+  end
+
+  def parse_content_libraries()
+    require 'vsphere-automation-content'
+    require 'vsphere-automation-cis'
+    options = {
+      :server   => 'dev-vc65.cloudforms.lab.eng.rdu2.redhat.com',
+      :username => 'jwong',
+      :password => '',
+      :insecure => true
+    }
+    configuration = VSphereAutomation::Configuration.new.tap do |c|
+      c.host = options[:server]
+      c.username = options[:username]
+      c.password = options[:password]
+      c.scheme = 'https'
+      c.verify_ssl = !options[:insecure]
+      c.verify_ssl_host = !options[:insecure]
+    end
+    
+    api_client = VSphereAutomation::ApiClient.new(configuration)
+    VSphereAutomation::CIS::SessionApi.new(api_client).create('')
+    api_lib = VSphereAutomation::Content::LibraryApi.new(api_client)
+    lib_ids = api_instance.list.value
+
+    api_item = VSphereAutomation::Content::LibraryItemApi.new(api_client)
+    items = lib_ids.each_with_object({}) do |id, h|
+      content_lib = api_lib.get(id).value
+      h[content_lib] = api_item.list(id).value.each_with_object([]) do |item_id, l|
+        l.push(api_item.get(item_id).value)
+      end
+    end
+
+    ll = VSphereAutomation::Content::LocalLibraryApi.new(api_client)
   end
 
   def parse_storage_profiles(vim, parser)
