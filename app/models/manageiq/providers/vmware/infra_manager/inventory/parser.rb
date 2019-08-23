@@ -321,6 +321,10 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Parser
     parse_virtual_machine_snapshots(vm, props)
   end
 
+  def parse_content_library(object) {
+    content_library = persister.orchestration_templates.build(props)
+  }
+
   def lazy_find_managed_object(managed_object)
     return if managed_object.nil?
 

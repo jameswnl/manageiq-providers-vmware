@@ -29,6 +29,17 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
     saver.stop_thread
   end
 
+  def r_refresh()
+    byebug
+    vim = connect
+    property_filter = create_property_filter(vim)
+
+    _log.info("#{log_header} Refreshing initial inventory")
+    puts "to full_refresh"
+    version = full_refresh(vim, property_filter)
+    _log.info("#{log_header} Refreshing initial inventory...Complete")
+  end
+
   private
 
   attr_reader   :ems, :inventory_cache, :saver
@@ -67,7 +78,7 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
 
     parse_updates(vim, parser, updated_objects)
     parse_storage_profiles(vim, parser)
-    parse_content_libraries()
+    parse_content_libraries(parser)
     save_inventory(persister)
 
     self.last_full_refresh = Time.now.utc
@@ -240,38 +251,36 @@ class ManageIQ::Providers::Vmware::InfraManager::Inventory::Collector
     @uncached_prop_set[obj.class.wsdl_name]
   end
 
-  def parse_content_libraries()
+  def parse_content_libraries(parser)
     require 'vsphere-automation-content'
     require 'vsphere-automation-cis'
-    options = {
-      :server   => 'dev-vc65.cloudforms.lab.eng.rdu2.redhat.com',
-      :username => 'jwong',
-      :password => '',
-      :insecure => true
-    }
+
+    username, password = ems.auth_user_pwd
+    byebug
+
     configuration = VSphereAutomation::Configuration.new.tap do |c|
-      c.host = options[:server]
-      c.username = options[:username]
-      c.password = options[:password]
+      c.host = ems.hostname
+      c.username = ems.auth_user_pwd.first
+      c.password = ems.auth_user_pwd.last
       c.scheme = 'https'
-      c.verify_ssl = !options[:insecure]
-      c.verify_ssl_host = !options[:insecure]
+      c.verify_ssl = false
+      c.verify_ssl_host = false
     end
     
     api_client = VSphereAutomation::ApiClient.new(configuration)
     VSphereAutomation::CIS::SessionApi.new(api_client).create('')
-    api_lib = VSphereAutomation::Content::LibraryApi.new(api_client)
-    lib_ids = api_instance.list.value
+    api_libs = VSphereAutomation::Content::LibraryApi.new(api_client)
+    lib_ids = api_libs.list.value
 
-    api_item = VSphereAutomation::Content::LibraryItemApi.new(api_client)
+    api_items = VSphereAutomation::Content::LibraryItemApi.new(api_client)
     items = lib_ids.each_with_object({}) do |id, h|
-      content_lib = api_lib.get(id).value
-      h[content_lib] = api_item.list(id).value.each_with_object([]) do |item_id, l|
-        l.push(api_item.get(item_id).value)
+      content_lib = api_libs.get(id).value
+      parser.parse_content_library(content_lib)
+      h[content_lib] = api_items.list(id).value.each_with_object([]) do |item_id, l|
+        l.push(api_items.get(item_id).value)
       end
     end
 
-    ll = VSphereAutomation::Content::LocalLibraryApi.new(api_client)
   end
 
   def parse_storage_profiles(vim, parser)
